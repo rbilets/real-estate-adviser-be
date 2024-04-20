@@ -4,18 +4,15 @@ import pandas as pd
 from azure.storage.blob import BlobServiceClient
 from homeharvest import scrape_property
 from datetime import date, timedelta
+from config import config
 
-from model_trainer import PropertyDatasetProcessor
 
-
-def read_model_from_storage(city, state):
-    connect_str = "DefaultEndpointsProtocol=https;AccountName=estateadviserstorage;AccountKey=Y52EdpNysG+MJetBBg7T+JeLfC/H8ZkB0HyGdRG+NItsVcY5KsKINikApihU4OqgERa2frz1gCVw+AStUiwuzg==;EndpointSuffix=core.windows.net"
-    blob_service_client = BlobServiceClient.from_connection_string(connect_str)
-    container_name = "models"
-    blob_name = f"{city.lower()}_{state.lower()}_model.pkl"
+def read_model_from_storage(city: str, state: str):
+    blob_service_client = BlobServiceClient.from_connection_string(config.az_storage_conn_str)
+    blob_name = f"{city.lower()}_{state.lower()}.pkl"
 
     blob_client = blob_service_client.get_blob_client(
-        container=container_name, blob=blob_name
+        container=config.az_storage_container_name, blob=blob_name
     )
     blob_data = blob_client.download_blob().readall()
 
@@ -24,7 +21,7 @@ def read_model_from_storage(city, state):
 
 
 def scrape_active_sales(location):
-    start_date = str(date.today() - timedelta(days=30))
+    start_date = str(date.today() - timedelta(days=config.active_listing_days))
     end_date = str(date.today())
 
     properties = scrape_property(
@@ -41,7 +38,7 @@ def scrape_active_sales(location):
 
 
 def predict_sale_prices(properties_df, rf_model):
-    years_to_predict = [date.today().year + i for i in range(0, 15, 5)]
+    years_to_predict = [date.today().year + i for i in range(0, config.yrs_to_predict + 1)]
 
     predicted_df = pd.concat(
         [properties_df.assign(sold_year=year) for year in years_to_predict],
@@ -86,7 +83,7 @@ def predict_sale_prices(properties_df, rf_model):
         lambda row: {
             "sold_year": row["sold_year"],
             "sold_price": row["sold_price"],
-            "percentage": f"{row['percentage']:.2f}%",
+            "percentage": row['percentage'],
         },
         axis=1,
     )
@@ -106,30 +103,3 @@ def predict_sale_prices(properties_df, rf_model):
         .reset_index()
     )
     return final_df
-
-
-def main():
-    location = "Seattle, WA"
-    city, state = location.split(", ")
-
-    raw_sales_df = scrape_active_sales(location)
-    rf_model = read_model_from_storage(city, state)
-    properties_df = PropertyDatasetProcessor(raw_sales_df, city).clean_dataset()
-    predict_prices_df = predict_sale_prices(properties_df, rf_model)
-    result = predict_prices_df.to_json(orient="records")
-
-    import json
-    with open('result.json', 'w', encoding='utf-8') as f:
-        json.dump(result, f)
-    return result
-
-
-if __name__ == "__main__":
-    start_time = time.time()
-    main()
-    end_time = time.time()
-
-    duration_seconds = end_time - start_time
-    duration_minutes = duration_seconds / 60
-
-    print(f"The function took {duration_minutes:.2f} minutes to complete.")
