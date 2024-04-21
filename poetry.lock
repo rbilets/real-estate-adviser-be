@@ -905,13 +905,13 @@ files = [
 
 [[package]]
 name = "homeharvest"
-version = "0.3.19"
+version = "0.3.14"
 description = "Real estate scraping library"
 optional = false
-python-versions = "<3.13,>=3.10"
+python-versions = ">=3.10,<3.13"
 files = [
-    {file = "homeharvest-0.3.19-py3-none-any.whl", hash = "sha256:64009287eb22fb5e094e1fdc7d21ba6214431aac1e2b5343c6fde975882baf07"},
-    {file = "homeharvest-0.3.19.tar.gz", hash = "sha256:d6355566ade5b99e6bf4651efd6a62bb78b37f18a3dd7f7b8e6b6869e0bf6e12"},
+    {file = "homeharvest-0.3.14-py3-none-any.whl", hash = "sha256:dfdf0b6b0cb45b49aaf47e85a7ae38991dca0376912fa0d7cadeeec0e90df809"},
+    {file = "homeharvest-0.3.14.tar.gz", hash = "sha256:11cc684b886a89465cec93866d276c5edcbc094c329636072db48555f33e0043"},
 ]
 
 [package.dependencies]
@@ -3845,4 +3845,4 @@ h11 = ">=0.9.0,<1"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.13"
-content-hash = "c68014da26e4a62973d4b6c7ad459cfacd956f95dbeb3c71ccc745e0ffa9ed43"
+content-hash = "fe6964ebe9b5465aa9dbee8d8d8133f5d5607e80c4548e10d6ae3bba14eb454d"

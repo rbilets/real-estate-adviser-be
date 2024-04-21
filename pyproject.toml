@@ -19,7 +19,7 @@ azure-storage-blob = "^12.19.1"
 fastapi = {extras = ["all"], version = "^0.110.2"}
 cachetools = "^5.3.3"
 python-dotenv = "^1.0.1"
-homeharvest = "^0.3.19"
+homeharvest = "0.3.14"
 
 
 [build-system]

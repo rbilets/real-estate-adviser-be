@@ -43,4 +43,4 @@ RUN useradd -m -d /home/site/wwwroot -s /bin/bash app && \
 USER app
 
 EXPOSE 8000
-CMD ["uvicorn", "real_estate_adviser_service.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
