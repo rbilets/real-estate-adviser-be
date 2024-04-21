@@ -1,6 +1,6 @@
 import re
 
-from add_location.utils import (
+from real_estate_adviser_service.add_location.utils import (
     scrape_historical_sales,
     PropertyDatasetProcessor,
     train_model,
