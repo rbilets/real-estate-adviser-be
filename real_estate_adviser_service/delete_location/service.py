@@ -1,7 +1,6 @@
 from azure.storage.blob import BlobServiceClient
-import config
 
-from config import config
+from real_estate_adviser_service.config import config
 
 def delete_location(location:str, city: str, state: str):
     blob_service_client = BlobServiceClient.from_connection_string(config.az_storage_conn_str)

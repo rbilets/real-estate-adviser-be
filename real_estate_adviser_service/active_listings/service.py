@@ -4,13 +4,13 @@ from cachetools import TTLCache
 import re
 
 
-from active_listings.utils import (
+from real_estate_adviser_service.active_listings.utils import (
     scrape_active_sales,
     read_model_from_storage,
     predict_sale_prices,
     filter_properties,
 )
-from add_location.utils import PropertyDatasetProcessor
+from real_estate_adviser_service.add_location.utils import PropertyDatasetProcessor
 
 
 cache = TTLCache(maxsize=10, ttl=1800)

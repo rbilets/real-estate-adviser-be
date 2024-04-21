@@ -6,7 +6,7 @@ authors = ["roman-bilets <roman.bilets@teck.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.10,<3.13"
 selenium = "^4.18.1"
 requests = "^2.31.0"
 webdriver-manager = "^4.0.1"
@@ -19,6 +19,7 @@ azure-storage-blob = "^12.19.1"
 fastapi = {extras = ["all"], version = "^0.110.2"}
 cachetools = "^5.3.3"
 python-dotenv = "^1.0.1"
+homeharvest = "^0.3.19"
 
 
 [build-system]

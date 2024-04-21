@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 import re
-from locations.service import get_location_names
+from real_estate_adviser_service.locations.service import get_location_names
 
 
 def format_location(location: str):
