@@ -1,15 +1,13 @@
 from fastapi import APIRouter, HTTPException
-from add_location.schemas import Location
 from add_location import service
-from locations.service import get_location_names
 from common import format_location
 
 router = APIRouter()
 
 
 @router.post("/add_location", operation_id="add_location")
-def add_location(location_data: Location):
-    location, city, state = format_location(location_data.location)
+def add_location(location: str):
+    location, city, state = format_location(location)
 
     try:
         service.initialize_location(location=location, city=city, state=state)

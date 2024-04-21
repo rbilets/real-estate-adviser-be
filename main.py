@@ -5,7 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from active_listings.router import router as active_listings_router
 from add_location.router import router as add_location_router
-from locations.router import router as added_locations_router
+from delete_location.router import router as delete_location_router
+from locations.router import router as locations_router
 
 
 app = FastAPI(debug=True)
@@ -18,9 +19,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(active_listings_router, prefix="", tags=["Endpoints"])
-app.include_router(add_location_router, prefix="", tags=["Endpoints"])
-app.include_router(added_locations_router, prefix="", tags=["Endpoints"])
+app.include_router(active_listings_router, prefix="", tags=["Listings"])
+app.include_router(add_location_router, prefix="", tags=["Locations"])
+app.include_router(delete_location_router, prefix="", tags=["Locations"])
+app.include_router(locations_router, prefix="", tags=["Locations"])
 
 
 if __name__ == "__main__":

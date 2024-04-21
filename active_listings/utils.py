@@ -102,4 +102,24 @@ def predict_sale_prices(properties_df, rf_model):
         .agg(list)
         .reset_index()
     )
+    final_df['alt_photos'] = final_df['alt_photos'].str.split(', ')
     return final_df
+
+
+def filter_properties(properties, min_price=None, max_price=None, sold_year=2024, amount=None):
+    if min_price is not None:
+        properties = [prop for prop in properties if prop['list_price'] >= min_price]
+    if max_price is not None:
+        properties = [prop for prop in properties if prop['list_price'] <= max_price]
+    
+    for prop in properties:
+        year_data = next((price for price in prop['predicted_prices'] if price['sold_year'] == sold_year), None)
+
+        if year_data:
+            prop['sort_percentage'] = year_data['percentage']
+    
+    properties = sorted(properties, key=lambda x: x.get('sort_percentage', float('-inf')), reverse=True)
+    if amount is not None:
+        properties = properties[:amount]
+    
+    return properties

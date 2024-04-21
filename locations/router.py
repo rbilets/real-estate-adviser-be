@@ -8,6 +8,6 @@ from locations import service
 router = APIRouter()
 
 
-@router.get("/added_locations", operation_id="get_added_locations")
-def get_added_locations() -> List[Location]:
+@router.get("/locations", operation_id="get_locations")
+def get_locations() -> List[Location]:
     return service.get_added_locations()

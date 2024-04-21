@@ -37,7 +37,8 @@ class Listing(BaseModel):
     hoa_fee: Optional[int]
     parking_garage: Optional[int]
     primary_photo: Optional[str]
-    alt_photos: Optional[str]
+    alt_photos: Optional[List[str]]
     distance_to_downtown: Optional[float]
     baths: Optional[float]
     predicted_prices: Optional[List[PredictPrice]]
+    percentage: float
