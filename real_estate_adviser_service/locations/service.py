@@ -1,7 +1,7 @@
 from azure.storage.blob import BlobServiceClient
 
-from real_estate_adviser_service.config import config
-from real_estate_adviser_service.locations.schemas import Location
+from config import config
+from locations.schemas import Location
 
 
 def get_added_locations():

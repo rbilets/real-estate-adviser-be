@@ -4,7 +4,7 @@ import pandas as pd
 from azure.storage.blob import BlobServiceClient
 from homeharvest import scrape_property
 from datetime import date, timedelta
-from real_estate_adviser_service.config import config
+from config import config
 
 
 def read_model_from_storage(city: str, state: str):

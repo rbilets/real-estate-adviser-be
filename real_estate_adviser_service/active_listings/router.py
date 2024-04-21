@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query, HTTPException
 
-from real_estate_adviser_service.active_listings import service
-from real_estate_adviser_service.common import format_location, validate_is_location_added
+from active_listings import service
+from common import format_location, validate_is_location_added
 
 
 router = APIRouter()

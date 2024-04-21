@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Query
 
 from typing import List
-from real_estate_adviser_service.locations.schemas import Location
-from real_estate_adviser_service.locations import service
+from locations.schemas import Location
+from locations import service
 
 
 router = APIRouter()

@@ -14,7 +14,7 @@ from homeharvest import scrape_property
 from datetime import datetime, timedelta
 from azure.storage.blob import BlobServiceClient, BlobBlock
 
-from real_estate_adviser_service.config import config
+from config import config
 
 
 def scrape_historical_sales(location):

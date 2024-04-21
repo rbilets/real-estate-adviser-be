@@ -3,10 +3,10 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from real_estate_adviser_service.active_listings.router import router as active_listings_router
-from real_estate_adviser_service.add_location.router import router as add_location_router
-from real_estate_adviser_service.delete_location.router import router as delete_location_router
-from real_estate_adviser_service.locations.router import router as locations_router
+from active_listings.router import router as active_listings_router
+from add_location.router import router as add_location_router
+from delete_location.router import router as delete_location_router
+from locations.router import router as locations_router
 
 
 app = FastAPI(debug=True)

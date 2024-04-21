@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from real_estate_adviser_service.delete_location import service
-from real_estate_adviser_service.common import format_location, validate_is_location_added
+from delete_location import service
+from common import format_location, validate_is_location_added
 
 
 router = APIRouter()

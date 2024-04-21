@@ -42,5 +42,5 @@ RUN useradd -m -d /home/site/wwwroot -s /bin/bash app && \
     chmod -R 755 /home/site/wwwroot
 USER app
 
-EXPOSE 80 8000
+EXPOSE 8000
 CMD ["uvicorn", "real_estate_adviser_service.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
