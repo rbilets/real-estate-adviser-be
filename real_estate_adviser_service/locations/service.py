@@ -17,9 +17,9 @@ def get_added_locations():
     locations = [
         Location(
             file_name=model.name,
-            location=f"{model.name.rstrip('.pkl').split('_')[0].capitalize()}, {model.name.rstrip('.pkl').split('_')[1].upper()}",
-            city=model.name.rstrip('.pkl').split("_")[0].capitalize(),
-            state=model.name.rstrip('.pkl').split("_")[1].upper(),
+            location=f"{model.name.split('.')[0].split('_')[0].capitalize()}, {model.name.split('.')[0].split('_')[1].upper()}",
+            city=model.name.split('.')[0].split("_")[0].capitalize(),
+            state=model.name.split('.')[0].split("_")[1].upper(),
             last_modified=model.last_modified,
             size_mb=round(model.size / 1048576, 2),
         )
