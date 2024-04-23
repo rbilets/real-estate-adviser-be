@@ -1,9 +1,10 @@
 import geopy.distance
 import pandas as pd
+import numpy as np
 from geopy.geocoders import Nominatim
 import pickle
-import time
 import uuid
+from sqlalchemy import Engine
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
@@ -15,12 +16,34 @@ from datetime import datetime, timedelta
 from azure.storage.blob import BlobServiceClient, BlobBlock
 
 from config import config
+from database.utils import (
+    read_historical_property_data,
+    write_historical_property_data,
+    remove_location_from_db,
+)
 
 
-def scrape_historical_sales(location):
+def scrape_historical_sales(engine: Engine, location: str, city: str, state: str):
+    sql_df = read_historical_property_data(engine, city, state)
+
+    if len(sql_df) == 0:
+        latest_ts = None
+    else:
+        sql_df["last_sold_date"] = pd.to_datetime(
+            sql_df["last_sold_date"], errors="coerce"
+        )
+        latest_ts = sql_df["last_sold_date"].max()
+
     date_format = "%Y-%m-%d"
     increment = timedelta(days=config.hist_batch_incr_days)
-    start_date = datetime(year=config.hist_start_year, month=1, day=1)
+
+    if latest_ts is None:
+        start_date = datetime(year=config.hist_start_year, month=1, day=1)
+    else:
+        remove_location_from_db(
+            engine=engine, city=city, state=state, last_sold_date=latest_ts
+        )
+        start_date = latest_ts
     end_date = start_date + increment
 
     dataframes = []
@@ -32,7 +55,7 @@ def scrape_historical_sales(location):
         try:
             properties = scrape_property(
                 location=location,
-                listing_type="sold",  # or (for_sale, for_rent)
+                listing_type="sold",
                 date_from=start_date_str,
                 date_to=end_date_str,
             )
@@ -45,8 +68,22 @@ def scrape_historical_sales(location):
         start_date = end_date + timedelta(days=1)
         end_date += increment
 
-    combined_df = pd.concat(dataframes, ignore_index=True)
-    print(combined_df.info())
+    scraped_df = pd.concat(dataframes, ignore_index=True)
+
+    scraped_df["style"] = scraped_df["style"].apply(lambda x: x.value if x else None)
+    scraped_df.replace([np.inf, -np.inf, np.nan], None, inplace=True)
+    scraped_df.drop(
+        ["mls", "mls_id", "primary_photo", "alt_photos"], axis=1, inplace=True
+    )
+
+    print(scraped_df.info())
+    write_historical_property_data(engine, scraped_df)
+
+    combined_df = (
+        pd.concat([scraped_df, sql_df], ignore_index=True)
+        if len(sql_df) > 0
+        else scraped_df
+    )
     return combined_df
 
 
@@ -115,7 +152,13 @@ class PropertyDatasetProcessor:
         )
 
         dataset.dropna(
-            subset=["year_built", "sqft", "distance_to_downtown", "parking_garage"],
+            subset=[
+                "year_built",
+                "sqft",
+                "distance_to_downtown",
+                "parking_garage",
+                "sold_year",
+            ],
             inplace=True,
         )
         dataset["age"] = dataset.apply(
@@ -138,11 +181,7 @@ def train_model(dataset):
         "list_date",
         "latitude",
         "longitude",
-        "primary_photo",
-        "mls",
-        "mls_id",
         "price_per_sqft",
-        "alt_photos",
         "style",
         "full_baths",
         "half_baths",
