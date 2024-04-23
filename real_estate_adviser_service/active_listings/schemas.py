@@ -12,7 +12,7 @@ class PredictPrice(BaseModel):
 class Listing(BaseModel):
     property_url: Optional[str]
     mls: Optional[str]
-    mls_id: Optional[int]
+    mls_id: Optional[str]
     status: Optional[str]
     style: Optional[str]
     street: Optional[str]
@@ -23,7 +23,7 @@ class Listing(BaseModel):
     beds: Optional[int]
     full_baths: Optional[int]
     half_baths: Optional[int]
-    sqft: Optional[float]
+    sqft: Optional[int]
     year_built: Optional[int]
     days_on_mls: Optional[int]
     list_price: Optional[int]

@@ -1,4 +1,3 @@
-import time
 import pickle
 import pandas as pd
 from azure.storage.blob import BlobServiceClient
@@ -8,7 +7,9 @@ from config import config
 
 
 def read_model_from_storage(city: str, state: str):
-    blob_service_client = BlobServiceClient.from_connection_string(config.az_storage_conn_str)
+    blob_service_client = BlobServiceClient.from_connection_string(
+        config.az_storage_conn_str
+    )
     blob_name = f"{city.lower()}_{state.lower()}.pkl"
 
     blob_client = blob_service_client.get_blob_client(
@@ -38,7 +39,9 @@ def scrape_active_sales(location):
 
 
 def predict_sale_prices(properties_df, rf_model):
-    years_to_predict = [date.today().year + i for i in range(0, config.yrs_to_predict + 1)]
+    years_to_predict = [
+        date.today().year + i for i in range(0, config.yrs_to_predict + 1)
+    ]
 
     predicted_df = pd.concat(
         [properties_df.assign(sold_year=year) for year in years_to_predict],
@@ -83,7 +86,7 @@ def predict_sale_prices(properties_df, rf_model):
         lambda row: {
             "sold_year": row["sold_year"],
             "sold_price": row["sold_price"],
-            "percentage": row['percentage'],
+            "percentage": row["percentage"],
         },
         axis=1,
     )
@@ -102,24 +105,35 @@ def predict_sale_prices(properties_df, rf_model):
         .agg(list)
         .reset_index()
     )
-    final_df['alt_photos'] = final_df['alt_photos'].str.split(', ')
+    final_df["alt_photos"] = final_df["alt_photos"].str.split(", ")
     return final_df
 
 
-def filter_properties(properties, min_price=None, max_price=None, sold_year=2024, amount=None):
+def filter_properties(
+    properties, min_price=None, max_price=None, sold_year=2024, amount=None
+):
     if min_price is not None:
-        properties = [prop for prop in properties if prop['list_price'] >= min_price]
+        properties = [prop for prop in properties if prop["list_price"] >= min_price]
     if max_price is not None:
-        properties = [prop for prop in properties if prop['list_price'] <= max_price]
-    
+        properties = [prop for prop in properties if prop["list_price"] <= max_price]
+
     for prop in properties:
-        year_data = next((price for price in prop['predicted_prices'] if price['sold_year'] == sold_year), None)
+        year_data = next(
+            (
+                price
+                for price in prop["predicted_prices"]
+                if price["sold_year"] == sold_year
+            ),
+            None,
+        )
 
         if year_data:
-            prop['sort_percentage'] = year_data['percentage']
-    
-    properties = sorted(properties, key=lambda x: x.get('sort_percentage', float('-inf')), reverse=True)
+            prop["sort_percentage"] = year_data["percentage"]
+
+    properties = sorted(
+        properties, key=lambda x: x.get("sort_percentage", float("-inf")), reverse=True
+    )
     if amount is not None:
         properties = properties[:amount]
-    
+
     return properties

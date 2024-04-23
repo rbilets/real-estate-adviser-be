@@ -21,13 +21,13 @@ def get_active_listings(
 
     try:
         return service.get_active_listings(
-        location=location,
-        city=city,
-        state=state,
-        min_price=min_price,
-        max_price=max_price,
-        sort_by_year=sort_by_year,
-        amount=amount
-    )
+            location=location,
+            city=city,
+            state=state,
+            min_price=min_price,
+            max_price=max_price,
+            sort_by_year=sort_by_year,
+            amount=amount,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
