@@ -48,3 +48,45 @@ def remove_location_from_db(
             except Exception as e:
                 print("An error occurred:", e)
                 transaction.rollback()
+
+
+def add_model_score(engine: Engine, model_name: str, score: float):
+    query = text(
+        """
+    MERGE INTO ModelScores AS target
+    USING (VALUES (:model_name, :score, :timestamp)) AS source (model_name, score, [timestamp])
+    ON target.model_name = source.model_name
+    WHEN MATCHED THEN
+        UPDATE SET target.score = source.score, target.[timestamp] = source.[timestamp]
+    WHEN NOT MATCHED THEN
+        INSERT (model_name, score, [timestamp])
+        VALUES (source.model_name, source.score, source.[timestamp]);
+    """
+    )
+    params = {
+        "model_name": model_name,
+        "score": score,
+        "timestamp": datetime.utcnow(),
+    }
+
+    with engine.connect() as connection:
+        with connection.begin() as transaction:
+            try:
+                connection.execute(query, params)
+                transaction.commit()
+                print(f"Added {score} score for {model_name}")
+            except Exception as e:
+                print("An error occurred:", e)
+                transaction.rollback()
+
+
+def get_model_scores(engine: Engine):
+    query = text("SELECT * FROM ModelScores")
+    with engine.connect() as connection:
+        query_result = connection.execute(query).fetchall()
+
+    model_scores = {}
+    if query_result:
+        for model_name, score, timestamp in query_result:
+            model_scores[model_name] = {"score": score, "timestamp": timestamp}
+    return model_scores

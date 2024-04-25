@@ -20,6 +20,7 @@ from database.utils import (
     read_historical_property_data,
     write_historical_property_data,
     remove_location_from_db,
+    add_model_score,
 )
 
 
@@ -198,10 +199,10 @@ def train_model(dataset):
 
     rf_model = RandomForestRegressor(n_estimators=50, random_state=42)
     rf_model.fit(X_train, y_train)
-    model_score = rf_model.score(X_test, y_test)
+    model_score = round(rf_model.score(X_test, y_test) * 100, 2)
     print(f"Model trained with the score: {model_score}")
 
-    return rf_model
+    return rf_model, model_score
 
 
 def get_chunk_blocks(data, blob_client, chunk_size=4 * 1024 * 1024):
@@ -222,7 +223,9 @@ def get_chunk_blocks(data, blob_client, chunk_size=4 * 1024 * 1024):
     return block_list
 
 
-def write_model_to_storage(model, city: str, state: str):
+def write_model_to_storage(
+    engine: Engine, model, city: str, state: str, model_score: float
+):
     serialized_model = pickle.dumps(model)
 
     blob_service_client = BlobServiceClient.from_connection_string(
@@ -237,5 +240,5 @@ def write_model_to_storage(model, city: str, state: str):
         serialized_model, blob_client, chunk_size=4 * 1024 * 1024
     )
     blob_client.commit_block_list(block_list)
-
+    add_model_score(engine=engine, model_name=blob_name, score=model_score)
     print(f"{blob_name} uploaded successfully.")

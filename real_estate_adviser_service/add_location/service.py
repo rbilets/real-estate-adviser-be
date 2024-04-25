@@ -13,5 +13,5 @@ def initialize_location(engine: Engine, location: str, city: str, state: str):
         engine=engine, location=location, city=city, state=state
     )
     dataset = PropertyDatasetProcessor(df, city).clean_dataset()
-    model = train_model(dataset)
-    write_model_to_storage(model, city, state)
+    model, model_score = train_model(dataset)
+    write_model_to_storage(engine, model, city, state, model_score)

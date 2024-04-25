@@ -2,9 +2,11 @@ from azure.storage.blob import BlobServiceClient
 
 from config import config
 from locations.schemas import Location
+from sqlalchemy import Engine
+from database.utils import get_model_scores
 
 
-def get_added_locations():
+def get_added_locations(engine: Engine):
     blob_service_client = BlobServiceClient.from_connection_string(
         config.az_storage_conn_str
     )
@@ -13,15 +15,20 @@ def get_added_locations():
     )
 
     models_list = container_client.list_blobs()
+    model_scores = get_model_scores(engine=engine)
 
     locations = [
         Location(
             file_name=model.name,
-            location=f"{model.name.split('.')[0].split('_')[0].capitalize()}, {model.name.split('.')[0].split('_')[1].upper()}",
-            city=model.name.split('.')[0].split("_")[0].capitalize(),
-            state=model.name.split('.')[0].split("_")[1].upper(),
+            location=f"{model.name.split('.')[0].split('_')[0].title()}, {model.name.split('.')[0].split('_')[1].upper()}",
+            city=model.name.split(".")[0].split("_")[0].title(),
+            state=model.name.split(".")[0].split("_")[1].upper(),
             last_modified=model.last_modified,
             size_mb=round(model.size / 1048576, 2),
+            score=model_scores.get(model.name)
+            and model_scores.get(model.name).get("score"),
+            score_calculated=model_scores.get(model.name)
+            and model_scores.get(model.name).get("timestamp"),
         )
         for model in models_list
     ]
