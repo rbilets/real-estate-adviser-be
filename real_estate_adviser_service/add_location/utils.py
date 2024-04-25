@@ -114,7 +114,7 @@ class PropertyDatasetProcessor:
             return full_baths + 0.5 * half_baths
 
     def clean_dataset(self):
-        dataset = self.dataset[(self.dataset.city == self.city)]
+        dataset = self.dataset[(self.dataset.city == self.city)].copy()
 
         dataset["distance_to_downtown"] = dataset.apply(
             lambda row: self.calc_lat_lon_dist(
