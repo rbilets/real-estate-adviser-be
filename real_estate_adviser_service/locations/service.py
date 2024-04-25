@@ -1,4 +1,5 @@
 from azure.storage.blob import BlobServiceClient
+from typing import Optional
 
 from config import config
 from locations.schemas import Location
@@ -6,7 +7,10 @@ from sqlalchemy import Engine
 from database.utils import get_model_scores
 
 
-def get_added_locations(engine: Engine):
+def get_added_locations(engine: Optional[Engine] = None):
+    """
+    If engine is passed, returns also model_score and score_calculated.
+    """
     blob_service_client = BlobServiceClient.from_connection_string(
         config.az_storage_conn_str
     )
@@ -15,7 +19,7 @@ def get_added_locations(engine: Engine):
     )
 
     models_list = container_client.list_blobs()
-    model_scores = get_model_scores(engine=engine)
+    model_scores = get_model_scores(engine=engine) if engine else {}
 
     locations = [
         Location(
