@@ -73,6 +73,8 @@ def predict_sale_prices(properties_df, rf_model):
         "half_baths",
         "last_sold_date",
         "sold_price",
+        "stories",
+        "hoa_fee",
     ]
     predicted_df["sold_price"] = rf_model.predict(
         predicted_df.drop(cols_to_drop, axis=1)

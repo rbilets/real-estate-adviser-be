@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 
 
 class Location(BaseModel):
@@ -9,5 +10,5 @@ class Location(BaseModel):
     state: str
     last_modified: datetime
     size_mb: float
-    score: float
-    score_calculated: datetime
+    score: Optional[float]
+    score_calculated: Optional[datetime]

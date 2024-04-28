@@ -5,12 +5,18 @@ from geopy.geocoders import Nominatim
 import pickle
 import uuid
 from sqlalchemy import Engine
+import requests
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.cluster import DBSCAN
+
 from sklearn.metrics import explained_variance_score
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import r2_score
+
 from homeharvest import scrape_property
 from datetime import datetime, timedelta
 from azure.storage.blob import BlobServiceClient, BlobBlock
@@ -89,19 +95,15 @@ def scrape_historical_sales(engine: Engine, location: str, city: str, state: str
 
 
 class PropertyDatasetProcessor:
-    def __init__(self, df, city):
+    def __init__(self, df, city, is_training=True, planned_mortgage_rate=None):
         self.dataset = df
         self.city = city
+        self.is_training = is_training
+        self.planned_mortgage_rate = planned_mortgage_rate
 
         geolocator = Nominatim(user_agent="RealEstateAdvisor")
         location = geolocator.geocode(f"Downtown {city}")
         self.downtown_lat, self.downtown_lon = location.latitude, location.longitude
-
-    @staticmethod
-    def calc_lat_lon_dist(lat1, lon1, lat2, lon2):
-        if pd.isna(lat1) or pd.isna(lon1) or pd.isna(lat2) or pd.isna(lon2):
-            return None
-        return round(geopy.distance.geodesic((lat1, lon1), (lat2, lon2)).km, 1)
 
     @staticmethod
     def calc_baths_num(full_baths, half_baths):
@@ -114,95 +116,176 @@ class PropertyDatasetProcessor:
         else:
             return full_baths + 0.5 * half_baths
 
-    def clean_dataset(self):
-        dataset = self.dataset[(self.dataset.city == self.city)].copy()
+    @staticmethod
+    def calc_lat_lon_dist(lat1, lon1, lat2, lon2):
+        if pd.isna(lat1) or pd.isna(lon1) or pd.isna(lat2) or pd.isna(lon2):
+            return None
+        return round(geopy.distance.geodesic((lat1, lon1), (lat2, lon2)).km, 1)
 
-        dataset["distance_to_downtown"] = dataset.apply(
+    @staticmethod
+    def fetch_mortgage_rates(series_id="MORTGAGE30US"):
+        url = f"https://api.stlouisfed.org/fred/series/observations"
+        params = {
+            "api_key": "d8dcefb8a2e7e77823eebd400f84ec42",
+            "file_type": "json",
+            "series_id": series_id,
+        }
+        response = requests.get(url, params=params)
+        data = response.json()
+        df = pd.DataFrame(data["observations"])
+        df["date"] = pd.to_datetime(df["date"])
+        return df[["date", "value"]]
+
+    @staticmethod
+    def filter_iqr(df, column):
+        Q1 = df[column].quantile(0.25)
+        Q3 = df[column].quantile(0.75)
+        IQR = Q3 - Q1
+        return df[(df[column] >= Q1 - 1.5 * IQR) & (df[column] <= Q3 + 1.5 * IQR)]
+
+    def clean_dataset(self):
+        final_df: pd.DataFrame = self.dataset[(self.dataset.city == self.city)].copy()
+
+        # Handling NULL values
+        final_df["baths"] = final_df.apply(
+            lambda row: self.calc_baths_num(row["full_baths"], row["half_baths"]),
+            axis=1,
+        )
+        final_df["lot_sqft"] = final_df.apply(
+            lambda row: 0.0 if pd.isna(row["lot_sqft"]) else row["lot_sqft"], axis=1
+        )
+        final_df["parking_garage"] = final_df.apply(
+            lambda row: (
+                0.0 if pd.isna(row["parking_garage"]) else row["parking_garage"]
+            ),
+            axis=1,
+        )
+
+        final_df.dropna(
+            subset=[
+                "zip_code",
+                "beds",
+                "sqft",
+                "year_built",
+                "sold_price",
+                "lot_sqft",
+                "parking_garage",
+                "last_sold_date",
+                "baths",
+                "latitude",
+                "longitude",
+            ],
+            inplace=True,
+        )
+
+        # FEATURE ENGINEERING
+
+        # Adding mortgate rate
+        final_df["last_sold_date"] = pd.to_datetime(final_df["last_sold_date"])
+        final_df["sold_year"] = final_df["last_sold_date"].dt.year
+
+        mortgage_rates = self.fetch_mortgage_rates()
+
+        if self.is_training:
+            mortgage_rates = mortgage_rates.sort_values(by="date")
+            final_df = final_df.sort_values(by="last_sold_date")
+
+            final_df = pd.merge_asof(
+                final_df,
+                mortgage_rates,
+                left_on="last_sold_date",
+                right_on="date",
+                direction="backward",
+            )
+            final_df.rename(columns={"value": "mortgage_rate"}, inplace=True)
+            final_df.drop(["date"], axis=1, inplace=True)
+        else:
+            if self.planned_mortgage_rate:
+                final_df["mortgage_rate"] = self.planned_mortgage_rate
+            else:
+                latest_mortgage_date = mortgage_rates[
+                    mortgage_rates["date"] == mortgage_rates["date"].max()
+                ]
+                latest_mortgage_rate = latest_mortgage_date["value"].iloc[0]
+                final_df["mortgage_rate"] = latest_mortgage_rate
+
+        # Adding age
+        final_df["age"] = final_df.apply(
+            lambda row: row["sold_year"] - row["year_built"], axis=1
+        )
+        final_df = final_df[final_df.age >= 0]
+
+        # Adding distance to downtown
+        final_df["distance_to_downtown"] = final_df.apply(
             lambda row: self.calc_lat_lon_dist(
                 row["latitude"], row["longitude"], self.downtown_lat, self.downtown_lon
             ),
             axis=1,
         )
-        dataset["baths"] = dataset.apply(
-            lambda row: self.calc_baths_num(row["full_baths"], row["half_baths"]),
-            axis=1,
-        )
-        dataset["sqft"] = dataset.apply(
-            lambda row: (
-                0.0 if pd.isna(row["sqft"]) and row["style"] == "LAND" else row["sqft"]
-            ),
-            axis=1,
-        )
-        dataset["style"] = dataset.apply(
-            lambda row: "OTHER" if pd.isna(row["style"]) else row["style"], axis=1
-        )
-        dataset["lot_sqft"] = dataset.apply(
-            lambda row: 0.0 if pd.isna(row["lot_sqft"]) else row["lot_sqft"], axis=1
-        )
-        dataset["hoa_fee"] = dataset.apply(
-            lambda row: 0.0 if pd.isna(row["hoa_fee"]) else row["hoa_fee"], axis=1
-        )
-        dataset["stories"] = dataset.apply(
-            lambda row: 0.0 if pd.isna(row["stories"]) else row["stories"], axis=1
-        )
-        dataset["beds"] = dataset.apply(
-            lambda row: 0.0 if pd.isna(row["beds"]) else row["beds"], axis=1
-        )
-        dataset["sold_year"] = pd.to_datetime(dataset["last_sold_date"]).apply(
-            lambda x: x.year
-        )
 
-        dataset.dropna(
-            subset=[
-                "year_built",
-                "sqft",
-                "distance_to_downtown",
-                "parking_garage",
-                "sold_year",
-            ],
-            inplace=True,
-        )
-        dataset["age"] = dataset.apply(
-            lambda row: row["sold_year"] - row["year_built"], axis=1
-        )
+        # Filtering out outliers
+        for col in ("sqft", "year_built", "distance_to_downtown"):
+            final_df = self.filter_iqr(final_df, col)
 
-        return dataset
+        if self.is_training:
+            dbscan = DBSCAN(eps=0.5, min_samples=10)
+            final_df["cluster_label"] = dbscan.fit_predict(final_df[["sold_price"]])
+            final_df = final_df[final_df["cluster_label"] != -1]
+            final_df.drop(columns=["cluster_label"], inplace=True)
+
+        return final_df
 
 
-def train_model(dataset):
+def train_model(dataset: pd.DataFrame):
     cols_to_drop = [
+        "sold_price",
         "property_url",
         "status",
+        "style",
         "street",
         "unit",
         "city",
         "state",
+        "full_baths",
+        "half_baths",
         "days_on_mls",
         "list_price",
         "list_date",
+        "last_sold_date",
+        "price_per_sqft",
         "latitude",
         "longitude",
-        "price_per_sqft",
-        "style",
-        "full_baths",
-        "half_baths",
-        "last_sold_date",
-        "sold_price",
+        "stories",
+        "hoa_fee",
     ]
 
     X = dataset.drop(cols_to_drop, axis=1)
     y = dataset["sold_price"]
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42
+        X, y, test_size=0.2, random_state=42
     )
 
     rf_model = RandomForestRegressor(n_estimators=50, random_state=42)
     rf_model.fit(X_train, y_train)
-    model_score = round(rf_model.score(X_test, y_test) * 100, 2)
-    print(f"Model trained with the score: {model_score}")
 
-    return rf_model, model_score
+    # Predictions on the test set
+    y_pred = rf_model.predict(X_test)
+
+    # Calculate metrics
+    r2 = r2_score(y_test, y_pred)
+    mae = mean_absolute_error(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+    rmse = mean_squared_error(y_test, y_pred, squared=False)
+    expl_rf = explained_variance_score(y_pred, y_test)
+
+    print(f"R-squared: {r2:.2f}")
+    print(f"Mean Absolute Error: {mae:.2f}")
+    print(f"Mean Squared Error: {mse:.2f}")
+    print(f"Root Mean Squared Error: {rmse:.2f}")
+    print(f"Explained Variance Score: {expl_rf:.2f}")
+
+    return rf_model, round(r2 * 100, 2)
 
 
 def get_chunk_blocks(data, blob_client, chunk_size=4 * 1024 * 1024):

@@ -40,5 +40,6 @@ class Listing(BaseModel):
     alt_photos: Optional[List[str]]
     distance_to_downtown: Optional[float]
     baths: Optional[float]
+    mortgage_rate: Optional[float]
     predicted_prices: Optional[List[PredictPrice]]
-    percentage: float
+    sort_percentage: float
