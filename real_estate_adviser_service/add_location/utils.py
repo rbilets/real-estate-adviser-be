@@ -126,7 +126,7 @@ class PropertyDatasetProcessor:
     def fetch_mortgage_rates(series_id="MORTGAGE30US"):
         url = f"https://api.stlouisfed.org/fred/series/observations"
         params = {
-            "api_key": "d8dcefb8a2e7e77823eebd400f84ec42",
+            "api_key": config.fred_api_key,
             "file_type": "json",
             "series_id": series_id,
         }

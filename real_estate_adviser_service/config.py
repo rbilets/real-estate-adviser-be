@@ -19,5 +19,7 @@ class Config:
         self.db_username = os.getenv("DB_USERNAME")
         self.db_password = os.getenv("DB_PASSWORD")
 
+        self.fred_api_key = os.getenv("FRED_API_KEY")
+
 
 config = Config()
