@@ -1,0 +1,43 @@
+WITH avg_prices AS (
+    SELECT 
+        YEAR(last_sold_date) AS [year],
+        AVG(sold_price / 1000.0) AS avg_price,
+        COUNT(*) AS properties_sold
+    FROM 
+        [dbo].[HistoricalPropertyData]
+    WHERE 
+        city = '{{ city }}'
+        {% if style %} AND [style] = '{{ style }}' {% endif %}
+        {% if min_beds %} AND beds >= {{ min_beds }} {% endif %}
+        {% if max_beds %} AND beds <= {{ max_beds }} {% endif %}
+        {% if min_baths %} AND full_baths >= {{ min_baths }} {% endif %}
+        {% if max_baths %} AND full_baths <= {{ max_baths }} {% endif %}
+        {% if min_sqft %} AND sqft >= {{ min_sqft }} {% endif %}
+        {% if max_sqft %} AND sqft <= {{ max_sqft }} {% endif %}
+        {% if min_stories %} AND stories >= {{ min_stories }} {% endif %}
+        {% if max_stories %} AND stories <= {{ max_stories }} {% endif %}
+        {% if year_built %} AND year_built = {{ year_built }} {% endif %}
+    GROUP BY 
+        YEAR(last_sold_date)
+)
+
+, final AS (
+    SELECT
+        [year],
+        avg_price,
+        properties_sold,
+        CASE
+            WHEN LAG(avg_price) OVER (ORDER BY [year]) IS NULL OR LAG(avg_price) OVER (ORDER BY [year]) = 0 THEN NULL
+            ELSE (avg_price - LAG(avg_price) OVER (ORDER BY [year])) * 100.0 / LAG(avg_price) OVER (ORDER BY [year])
+        END AS percentage_change
+    FROM
+        avg_prices
+)
+
+SELECT 
+    [year],
+    CAST(ROUND(avg_price * 1000.0, 0) AS INT) AS avg_price,
+    properties_sold,
+    ROUND(percentage_change, 2) AS percentage_change
+FROM
+    final

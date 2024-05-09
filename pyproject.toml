@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "real-estate-scraper"
+version = "0.1.0"
+description = ""
+authors = ["roman-bilets <roman.bilets@teck.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+selenium = "^4.18.1"
+requests = "^2.31.0"
+webdriver-manager = "^4.0.1"
+geopy = "^2.4.1"
+jupyter = "^1.0.0"
+matplotlib = "^3.8.4"
+seaborn = "^0.13.2"
+scikit-learn = "^1.4.2"
+azure-storage-blob = "^12.19.1"
+fastapi = {extras = ["all"], version = "^0.110.2"}
+cachetools = "^5.3.3"
+python-dotenv = "^1.0.1"
+homeharvest = "0.3.14"
+sqlalchemy = "^2.0.29"
+jinja2 = "^3.1.3"
+pyodbc = "^5.1.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
