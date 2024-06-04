@@ -40,7 +40,7 @@ def scrape_active_sales(location):
 
 def predict_sale_prices(properties_df, rf_model):
     years_to_predict = [
-        date.today().year + i for i in range(0, config.yrs_to_predict + 1)
+        date.today().year + i for i in range(0, config.yrs_to_predict + 1, 2)
     ]
 
     predicted_df = pd.concat(

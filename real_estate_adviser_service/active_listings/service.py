@@ -13,7 +13,7 @@ from active_listings.utils import (
 from add_location.utils import PropertyDatasetProcessor
 
 
-cache = TTLCache(maxsize=10, ttl=1800)
+cache = TTLCache(maxsize=10, ttl=60*180)
 
 
 def _get_cache_key(location: str):
